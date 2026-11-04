@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐾 貓咪主廚工作坊 (Cat Chef Workshop)</title>
+    <!-- 載入 Google 圓潤與易讀字型 -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- 引入 GSAP, GSAP Draggable, 與 Anime.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Draggable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+</head>
+<body>
+    <!-- 全螢幕派對五彩紙屑畫布 -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- 🪐 前置故事動畫圖層 (Intro Story Overlay) 🪐 -->
+    <div id="intro-story-overlay" style="display: none;">
+        <button id="skip-intro-btn" class="skip-btn">跳過動畫 Skip ⏭️</button>
+        <div id="intro-stage" class="intro-preview-stage stage-earth" aria-live="polite">
+            <div class="intro-space-bg" aria-hidden="true">
+                <span class="intro-meteor"></span>
+                <span class="intro-meteor"></span>
+                <span class="intro-meteor"></span>
+            </div>
+            <img class="intro-scene-img intro-cat-scientist" src="gemini_photo/cat_scientist_1782179342453.png" alt="貓咪科學家">
+            <img class="intro-scene-img intro-earth" src="gemini_photo/cute_earth_1782179399607.png" alt="地球">
+            <img class="intro-scene-img intro-taiwan" src="gemini_photo/cute_taiwan_1782179431802.png" alt="台灣島">
+            <img class="intro-scene-img intro-taiwan-glow" src="gemini_photo/glowing_taiwan_1782179463806.png" alt="發光台灣島">
+            <img class="intro-scene-img intro-bg-img intro-taipei" src="gemini_photo/taipei_skyline_1782179501457.png" alt="台北城市">
+            <img class="intro-scene-img intro-ufo" src="gemini_photo/cute_ufo_1782179549164.png" alt="UFO">
+            <img class="intro-scene-img intro-beam" src="gemini_photo/tractor_beam_1782179577712.png" alt="綠色牽引光束">
+            <video id="intro-kitchen-video" class="intro-kitchen-video" src="gemini_photo/cat_kitchen.mp4" muted playsinline preload="auto"></video>
+            <div class="intro-scan-ring" aria-hidden="true">
+                <span class="intro-scan-wave"></span>
+            </div>
+            <div class="intro-warning-text">ERROR 404<br>HUMAN CODE DELETED</div>
+        </div>
+        <div id="story-subtitle" class="story-subtitle-box"></div>
+    </div>
+
+    <!-- 🌟 全域頂部 Navigation Bar 🌟 -->
+    <nav id="top-nav" class="glass">
+        <div class="nav-logo">🐾 貓咪主廚工作坊</div>
+        <button id="nav-toggle-btn" class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">⏸️ 暫停</button>
+        <div id="nav-menu" class="nav-links">
+            <button id="nav-btn-start" class="nav-item active">🎮 進入廚房</button>
+            <button id="nav-btn-instructions" class="nav-item">❓ 遊戲說明</button>
+            <button id="nav-btn-book" class="nav-item">📖 食譜圖鑑</button>
+        </div>
+    </nav>
+
+    <!-- 1. 開始畫面 (Start Screen Overlay) -->
+    <div id="start-screen" class="overlay active">
+        <div class="start-box glass">
+            <h1 class="game-title animate-bounce">🐾 貓咪主廚工作坊 🐾</h1>
+            <p class="game-subtitle">融合療癒軟萌、物理拖曳與時間管理的單頁點餐遊戲！</p>
+            <div class="menu-cat-container">
+                <div class="menu-cat">🐱🍳</div>
+            </div>
+            <div class="start-buttons">
+                <button id="btn-start" class="btn btn-primary">開始遊戲 🎮</button>
+                <button id="btn-open-instructions-start" class="btn btn-secondary">❓ 遊戲說明</button>
+                <button id="btn-open-book-start" class="btn btn-secondary">📖 食譜圖鑑</button>
+            </div>
+            <p class="copyright-notice">© 2026 貓咪主廚團隊 - 無版權自主合成音效引擎</p>
+        </div>
+    </div>
+
+    <!-- 2. 主遊戲畫面 (Main Game UI) -->
+    <div id="game-container">
+        <!-- 頂部狀態列 (HUD) -->
+        <header id="hud" class="glass">
+            <div class="hud-left">
+                <div class="stat-item level-container">
+                    <span class="label">等級</span>
+                    <span id="level-val" class="value text-glow">1</span>
+                </div>
+                <div class="exp-bar-wrapper">
+                    <div id="exp-bar-fill" class="exp-fill"></div>
+                    <span id="exp-text">EXP 0 / 100</span>
+                </div>
+            </div>
+
+            <div class="hud-center">
+                <div class="stat-item gold-container">
+                    <span class="emoji">🪙</span>
+                    <span id="gold-val" class="value">0</span>
+                </div>
+                <div id="hearts-container" class="hearts-wrapper hide">
+                    <!-- 心心會由 JS 動態生成 -->
+                </div>
+            </div>
+
+            <div class="hud-right">
+                <div id="fever-badge" class="fever-badge hide">狂熱中 🔥</div>
+                <div id="fever-timer-wrapper" class="fever-timer hide">
+                    <div id="fever-timer-fill" class="fever-fill"></div>
+                    <span id="fever-timer-text">60s</span>
+                </div>
+                <!-- 原有按鈕升級為 nav bar 統一管理，此處放暫停/回選單輔助功能 -->
+                <button id="btn-game-exit" class="btn-book">🏠 返回主選單</button>
+            </div>
+        </header>
+
+        <!-- 客席桌台區 (3 位貓咪客人) -->
+        <section id="guest-zone">
+            <div class="guest-desk-line"></div>
+            <div id="guests-container">
+                <!-- 3 個客席座，由 JS 動態載入 -->
+                <div class="guest-spot" id="spot-0"></div>
+                <div class="guest-spot" id="spot-1"></div>
+                <div class="guest-spot" id="spot-2"></div>
+            </div>
+        </section>
+
+        <!-- Main kitchen workbench -->
+        <section id="kitchen-zone" class="kitchen-workshop">
+            <div class="counter-line" aria-hidden="true"></div>
+
+            <div class="station-row station-row-top">
+                <div class="tool-station sushi-station">
+                    <div class="station-label">壽司模具 <span>耗時2秒</span></div>
+                    <img id="sushi-mold-img" class="tool-img sushi-mold-img" src="assets/equipment/sushi_mold_empty.png" alt="壽司模具">
+                </div>
+
+                <div id="dish-tray" class="tool-station serving-station tray-container">
+                    <div class="station-label">出餐工作檯面</div>
+                    <img class="tool-img serving-table-img" src="assets/equipment/serving_table.png" alt="出餐工作檯面">
+                    <div class="station-hint workbench-hint">完成料理暫放處</div>
+                    <div id="completed-dish-slot"></div>
+                </div>
+
+                <div class="tool-station onigiri-station">
+                    <div class="station-label">飯糰模具 <span>耗時2秒</span></div>
+                    <img id="onigiri-mold-img" class="tool-img onigiri-mold-img" src="assets/equipment/onigiri_empty.png" alt="飯糰模具">
+                </div>
+            </div>
+
+            <div class="station-row station-row-bottom">
+                <div id="prep-pot" class="tool-station stove-station pot-container">
+                    <div class="station-label">瓦斯爐區</div>
+                    <img id="stove-left-img" class="tool-img stove-left-img stove-burner" data-burner="left" src="assets/equipment/stove_off.png" alt="左瓦斯爐">
+                    <img id="stove-right-img" class="tool-img stove-right-img stove-burner" data-burner="right" src="assets/equipment/stove_off.png" alt="右瓦斯爐">
+                </div>
+
+                <div class="tool-station prep-station">
+                    <div class="station-label">出餐準備區</div>
+                    <img class="tool-img prep-table-img" src="assets/equipment/prep_table.png" alt="出餐準備區">
+                    <div class="station-hint prep-drop-hint">放入食材</div>
+                    <div id="prep-stage-preview"></div>
+                    <div id="pot-slots">
+                        <div class="pot-slot" id="pot-slot-1"></div>
+                        <div class="pot-slot" id="pot-slot-2"></div>
+                        <div class="pot-slot" id="pot-slot-3"></div>
+                        <div class="pot-slot" id="pot-slot-4"></div>
+                        <div class="pot-slot" id="pot-slot-5"></div>
+                    </div>
+                </div>
+
+                <div class="tool-station oven-station">
+                    <div class="station-label">烤箱區 <span>耗時5秒</span></div>
+                    <img id="oven-img" class="tool-img oven-img" src="assets/equipment/oven_open.png" alt="烤箱">
+                    <div id="oven-status" class="oven-status">可放入烤盤</div>
+                </div>
+            </div>
+
+            <div class="pantry-board">
+                <div class="pantry-side">
+                    <div id="ingredient-shelf-title">食材補給區</div>
+                    <div id="trash-can" class="trash-container kitchen-trash">
+                        <img class="trash-img" src="assets/equipment/trash.png" alt="垃圾桶">
+                    </div>
+                </div>
+                <div id="ingredients-shelf">
+                    <!-- Ingredients are rendered by app.js -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 老鼠突襲警戒層 (專屬警報與小老鼠軌道) -->
+        <div id="mouse-siren" class="mouse-alarm hide">🚨 老鼠警告！老鼠正在偷襲廚房！🚨</div>
+        <div id="mouse-zone">
+            <!-- 老鼠會在此區域生成移動 -->
+        </div>
+    </div>
+
+    <!-- 3. 全域圖鑑遮罩層 (Recipe Book Modal) -->
+    <div id="book-modal" class="overlay">
+        <div class="book-box glass">
+            <div class="book-header">
+                <h2>📖 貓咪小廚圖鑑秘笈 (已暫停遊戲)</h2>
+                <button id="btn-close-book" class="btn-close">✖</button>
+            </div>
+            <p class="book-intro">點選料理卡片，即可進行 180 度翻轉查看美味合成配方！</p>
+            <div id="recipes-grid">
+                <!-- 20 種雙食材料理卡片，由 JS 動態生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 新增：全域遊戲說明遮罩層 (Instructions Modal) 🌟 -->
+    <div id="instructions-modal" class="overlay">
+        <div class="book-box glass">
+            <div class="book-header">
+                <h2>❓ 貓咪廚房公約與新手指南 (已暫停遊戲)</h2>
+                <button id="btn-close-instructions" class="btn-close">✖</button>
+            </div>
+            <div class="instructions-content" style="text-align: left; line-height: 1.6; margin-top: 15px;">
+                <h3 style="color: var(--primary-color); margin-bottom: 8px;">🍳 核心玩法三部曲：</h3>
+                <ol style="margin-left: 20px; margin-bottom: 15px;">
+                    <li><strong>取料入鍋</strong>：在工作檯上選擇已解鎖的食材，<strong>直接點選拖曳</strong>至中央的「烹飪合成釜」中。滿兩樣食材自動開始調配！</li>
+                    <li><strong>驚喜合成</strong>：若食材匹配，將在右側「成品盤」產出對應料理。若隨意搭配，則會產生焦黑失敗料理💀。</li>
+                    <li><strong>拖曳餵食</strong>：將成品盤上的料理<strong>按住拖曳</strong>至索要該料理的貓咪客人嘴邊，即可成功出餐，賺取金幣與經驗！</li>
+                </ol>
+
+                <h3 style="color: var(--primary-color); margin-bottom: 8px;">⚠️ 廚房注意事項：</h3>
+                <ul style="margin-left: 20px; margin-bottom: 15px;">
+                    <li><strong>垃圾桶銷毀</strong>：拖錯食材或做出失敗料理？直接將其拖曳至紅色「垃圾桶」即可清除！</li>
+                    <li><strong>防呆失敗處罰</strong>：若將焦黑失敗料理餵給貓咪，貓咪會受到驚嚇，<strong>剩餘耐心值瞬間暴扣 50%</strong>！</li>
+                    <li><strong>老鼠偷竊危機</strong>：老鼠突襲時請在 5 秒內快速點擊牠！否則牠會偷走您的料理、備料，甚至是 50 枚金幣！</li>
+                    <li><strong>狂熱 Fever Time</strong>：每次升級將開啟 60 秒的 Fever Time，金幣收益雙倍，速度增幅，音樂倍速！</li>
+                    <li><strong>米其林星級無限模式</strong>：20等後無縫升級為黑金主題無限賽，擁有 3 顆心心，貓咪耐心歸零會扣心，扣完即 Game Over 結算排行榜！</li>
+                </ul>
+            </div>
+            <div style="margin-top: 20px;">
+                <button id="btn-start-from-instructions" class="btn btn-primary" style="padding: 8px 24px; font-size: 0.95rem;">了解！進入廚房 🐾</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Level Up 歡慶全螢幕提示 -->
+    <div id="levelup-overlay" class="overlay">
+        <div class="levelup-box text-center">
+            <div class="levelup-emoji">🎉🐱👑</div>
+            <h2 class="levelup-title">LEVEL UP! 升級啦！</h2>
+            <p class="levelup-desc">新食材解鎖成功，主廚帽為您戴上！準備進入狂熱時光！</p>
+            <div class="party-hat-cat">😸🎩</div>
+        </div>
+    </div>
+
+    <!-- 5. Game Over 與米其林排行榜 -->
+    <div id="gameover-overlay" class="overlay">
+        <div class="gameover-box glass">
+            <h2 class="gameover-title">🏁 廚神賽事完結 🏁</h2>
+            <p id="gameover-score-desc">您在無限廚神模式中表現卓越！</p>
+            
+            <div class="final-score-badge">
+                <span class="label">最終得分</span>
+                <span id="final-score-val">0</span>
+            </div>
+
+            <!-- 本地米其林排行榜 -->
+            <div class="leaderboard-container">
+                <h3>👑 米其林三星廚神榮譽榜 👑</h3>
+                <div class="leaderboard-table-wrapper">
+                    <table id="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>名次</th>
+                                <th>日期時間</th>
+                                <th>廚神積分</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            <!-- 由 JS 動態寫入 localStorage 高分 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="gameover-buttons">
+                <button id="btn-restart" class="btn btn-primary">重新挑戰 🔄</button>
+                <button id="btn-back-menu" class="btn btn-secondary">返回主選單 🏠</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 遊戲主邏輯 -->
+    <script src="app.js"></script>
+</body>
+</html>

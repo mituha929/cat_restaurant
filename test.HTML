@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>去背圖片驗證與精確切割工具</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --text-color: #333;
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            margin: 0;
+        }
+
+        .controls-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 700px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .input-group input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 8px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* 座標顯示區塊 */
+        .coordinate-display {
+            background-color: #333;
+            color: #00ff00;
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .checkerboard-display {
+            width: 100%;
+            max-width: 800px;
+            height: 500px;
+            background-color: #fff;
+            background-image:
+                linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc),
+                linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            border: 2px solid #bbb;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: crosshair; /* 改變游標樣式，提升操作手感 */
+        }
+
+        #testImage {
+            max-height: 90%;
+            max-width: 90%;
+            object-fit: contain;
+            /* 移除 transform 動畫，確保滑鼠座標計算不會因為移動而失準 */
+        }
+    </style>
+</head>
+<body>
+
+    <h2>精確座標切割工具</h2>
+
+    <div class="controls-container">
+        <div class="input-group">
+            <label for="imageUpload"><strong>1. 上傳 PNG 圖片：</strong></label>
+            <input type="file" id="imageUpload" accept=".png, image/png">
+        </div>
+        
+        <div class="input-group">
+            <label><strong>2. 圖片原始座標：</strong></label>
+            <div class="coordinate-display" id="mouseCoords">X: 0, Y: 0</div>
+            <span style="font-size: 0.85rem; color: #666;">(將滑鼠移至圖片上查看，顯示為真實像素座標)</span>
+        </div>
+
+        <div class="input-group">
+            <label><strong>3. 設定裁切範圍：</strong></label>
+            X: <input type="number" id="cropX" value="0" min="0">
+            Y: <input type="number" id="cropY" value="0" min="0">
+            寬度: <input type="number" id="cropW" value="100" min="1">
+            高度: <input type="number" id="cropH" value="100" min="1">
+            <button id="customCropBtn" disabled>執行切割並下載</button>
+        </div>
+    </div>
+
+    <div class="checkerboard-display">
+        <img id="testImage" src="" alt="" style="display: none;">
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const imageUpload = document.getElementById('imageUpload');
+            const testImage = document.getElementById('testImage');
+            const mouseCoords = document.getElementById('mouseCoords');
+            const customCropBtn = document.getElementById('customCropBtn');
+            
+            // 裁切參數輸入框
+            const cropX = document.getElementById('cropX');
+            const cropY = document.getElementById('cropY');
+            const cropW = document.getElementById('cropW');
+            const cropH = document.getElementById('cropH');
+
+            let currentImageUrl = null;
+
+            // 處理圖片上傳
+            imageUpload.addEventListener('change', (event) => {
+                try {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    if (currentImageUrl) URL.revokeObjectURL(currentImageUrl);
+
+                    currentImageUrl = URL.createObjectURL(file);
+                    testImage.src = currentImageUrl;
+                    testImage.style.display = 'block';
+                    customCropBtn.disabled = true;
+
+                } catch (error) {
+                    alert("載入失敗：" + error.message);
+                }
+            });
+
+            // 圖片載入完成後啟用按鈕
+            testImage.addEventListener('load', () => {
+                customCropBtn.disabled = false;
+                // 預設將寬高設定為圖片實際尺寸的一半作為防呆
+                cropW.value = Math.floor(testImage.naturalWidth / 2);
+                cropH.value = Math.floor(testImage.naturalHeight / 2);
+            });
+
+            // 追蹤滑鼠位置並轉換為「真實圖片座標」
+            testImage.addEventListener('mousemove', (event) => {
+                if (!testImage.complete || testImage.naturalWidth === 0) return;
+
+                // 取得 <img> 標籤在畫面上的渲染大小與位置
+                const rect = testImage.getBoundingClientRect();
+                
+                // 計算縮放比例 (處理 object-fit: contain 帶來的影響)
+                const ratio = Math.min(rect.width / testImage.naturalWidth, rect.height / testImage.naturalHeight);
+                
+                // 計算圖片在容器中實際渲染的長寬
+                const renderedWidth = testImage.naturalWidth * ratio;
+                const renderedHeight = testImage.naturalHeight * ratio;
+                
+                // 計算因 object-fit 置中而產生的空白邊距 (Offset)
+                const offsetX = (rect.width - renderedWidth) / 2;
+                const offsetY = (rect.height - renderedHeight) / 2;
+
+                // 將螢幕滑鼠座標轉換回原始圖片像素座標
+                let x = Math.round((event.clientX - rect.left - offsetX) / ratio);
+                let y = Math.round((event.clientY - rect.top - offsetY) / ratio);
+
+                // 限制座標不超出圖片真實邊界 (Clamp)
+                x = Math.max(0, Math.min(x, testImage.naturalWidth));
+                y = Math.max(0, Math.min(y, testImage.naturalHeight));
+
+                mouseCoords.textContent = `X: ${x}, Y: ${y}`;
+            });
+
+            // 滑鼠離開圖片時重置座標顯示
+            testImage.addEventListener('mouseleave', () => {
+                mouseCoords.textContent = `X: 0, Y: 0`;
+            });
+
+            // 處理自訂裁切
+            customCropBtn.addEventListener('click', () => {
+                const startX = parseInt(cropX.value, 10);
+                const startY = parseInt(cropY.value, 10);
+                const width = parseInt(cropW.value, 10);
+                const height = parseInt(cropH.value, 10);
+
+                // Error Handling: 防呆與邊界檢查
+                if (isNaN(startX) || isNaN(startY) || isNaN(width) || isNaN(height)) {
+                    alert("請確保所有裁切數值皆為有效數字。");
+                    return;
+                }
+                if (width <= 0 || height <= 0) {
+                    alert("寬度與高度必須大於 0。");
+                    return;
+                }
+                if (startX + width > testImage.naturalWidth || startY + height > testImage.naturalHeight) {
+                    alert(`裁切範圍超出邊界！圖片原始尺寸為 ${testImage.naturalWidth}x${testImage.naturalHeight}`);
+                    return;
+                }
+
+                executeCustomCrop(testImage, startX, startY, width, height);
+            });
+        });
+
+        /**
+         * 執行自訂座標裁切與下載
+         */
+        function executeCustomCrop(sourceImage, x, y, w, h) {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+
+                // 根據輸入座標裁切並繪製到 Canvas
+                ctx.drawImage(sourceImage, x, y, w, h, 0, 0, w, h);
+
+                const dataUrl = canvas.toDataURL('image/png');
+                
+                const link = document.createElement('a');
+                link.download = `cropped_${x}_${y}.png`;
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+            } catch (error) {
+                console.error("切割失敗:", error);
+                alert("發生錯誤，請檢查圖片是否有效。");
+            }
+        }
+    </script>
+</body>
+</html>

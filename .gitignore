@@ -1,0 +1,17 @@
+# Editor and Codex workspace settings
+.agents/
+.vscode/
+.idea/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Legacy backup and duplicate archive
+old final project/
+器具.zip
+
+# Operating system files
+Thumbs.db
+Desktop.ini
+.DS_Store

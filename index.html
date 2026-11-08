@@ -17,6 +17,14 @@
     <!-- 全螢幕派對五彩紙屑畫布 -->
     <canvas id="confetti-canvas"></canvas>
 
+    <div id="orientation-lock" class="orientation-lock" role="alert" aria-live="assertive" aria-hidden="true">
+        <div class="orientation-lock-content">
+            <div class="orientation-icon" aria-hidden="true">📱↻</div>
+            <h2>請轉為橫向遊玩</h2>
+            <p>貓咪主廚工作坊需要橫向畫面，遊戲已暫停。</p>
+        </div>
+    </div>
+
     <!-- 🪐 前置故事動畫圖層 (Intro Story Overlay) 🪐 -->
     <div id="intro-story-overlay" style="display: none;">
         <button id="skip-intro-btn" class="skip-btn">跳過動畫 Skip ⏭️</button>
@@ -145,6 +153,10 @@
                     <div class="station-label">瓦斯爐區</div>
                     <img id="stove-left-img" class="tool-img stove-left-img stove-burner" data-burner="left" src="assets/equipment/stove_off.png" alt="左瓦斯爐">
                     <img id="stove-right-img" class="tool-img stove-right-img stove-burner" data-burner="right" src="assets/equipment/stove_off.png" alt="右瓦斯爐">
+                    <div class="compact-stove-controls" aria-label="瓦斯爐控制">
+                        <button id="compact-stove-left" type="button"><span class="compact-stove-label">左爐</span><span class="compact-stove-status">目前狀態：關</span></button>
+                        <button id="compact-stove-right" type="button"><span class="compact-stove-label">右爐</span><span class="compact-stove-status">目前狀態：關</span></button>
+                    </div>
                 </div>
 
                 <div class="tool-station prep-station">
@@ -152,6 +164,7 @@
                     <img class="tool-img prep-table-img" src="assets/equipment/prep_table.png" alt="出餐準備區">
                     <div class="station-hint prep-drop-hint">放入食材</div>
                     <div id="prep-stage-preview"></div>
+                    <div id="compact-prep-status" aria-live="polite">拖曳食材到這裡</div>
                     <div id="pot-slots">
                         <div class="pot-slot" id="pot-slot-1"></div>
                         <div class="pot-slot" id="pot-slot-2"></div>
@@ -164,6 +177,7 @@
                 <div class="tool-station oven-station">
                     <div class="station-label">烤箱區 <span>耗時5秒</span></div>
                     <img id="oven-img" class="tool-img oven-img" src="assets/equipment/oven_open.png" alt="烤箱">
+                    <button id="compact-oven-button" class="compact-oven-button" type="button">烤箱：關門</button>
                     <div id="oven-status" class="oven-status">可放入烤盤</div>
                 </div>
             </div>

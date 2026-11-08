@@ -18,6 +18,8 @@ const state = {
 
     // 模式狀態
     isPaused: false,
+    orientationLocked: false,
+    wasPausedBeforeOrientation: false,
     isFever: false,
     feverTimeLeft: 0,
     isEndless: false,
@@ -462,7 +464,7 @@ function renderIngredientBoxContent(box, ing) {
 
     if (isLocked) {
         box.classList.add("locked");
-        box.innerHTML = `<span class="unlock-level-hint">Lv.${ing.unlockLevel} 閫??</span>`;
+        box.innerHTML = `<span class="unlock-level-hint">Lv.${ing.unlockLevel} 解鎖</span>`;
         return;
     }
 
@@ -474,11 +476,15 @@ function renderIngredientBoxContent(box, ing) {
             </div>
             <div class="ingredient-name">${ing.name}</div>
             <div class="stock-meter stock-low"><span style="width: ${isRestocking ? 100 : 0}%; background: linear-gradient(90deg, #ef4d3f, #ff8a65);"></span></div>
-            <button class="restock-btn" ${isRestocking || state.gold < 100 ? "disabled" : ""}>${isRestocking ? "鋆疏銝?.." : "鋆疏 $100"}</button>
+            <button class="restock-btn" ${isRestocking || state.gold < 100 ? "disabled" : ""}>${isRestocking ? "補貨中..." : "補貨 $100"}</button>
         `;
         bindRestockButton(box, ing.id);
         return;
     }
+
+    const restockButton = stock < 10
+        ? `<button class="restock-btn" ${state.gold < 100 ? "disabled" : ""}>補貨 $100</button>`
+        : "";
 
     box.innerHTML = `
         <div class="ingredient-emoji">
@@ -487,7 +493,7 @@ function renderIngredientBoxContent(box, ing) {
         <div class="ingredient-name">${ing.name}</div>
         <div class="stock-meter ${stockVisual.className}"><span style="width: ${Math.min(100, stock * 10)}%; background: ${stockVisual.gradient};"></span></div>
         <div class="stock-count ${stockVisual.className}">${stock}/10</div>
-        <button class="restock-btn" ${stock >= 10 || state.gold < 100 ? "disabled" : ""}>鋆疏 $100</button>
+        ${restockButton}
     `;
     bindRestockButton(box, ing.id);
     setupIngredientDraggable(box);
@@ -860,7 +866,7 @@ function levelUp() {
 
     setTimeout(() => {
         overlay.classList.remove("active");
-        state.isPaused = false;
+        state.isPaused = state.orientationLocked;
         
         let feverSeconds = 0;
         if (state.level >= 6 && state.level <= 10) feverSeconds = 20;
@@ -1299,6 +1305,7 @@ function updatePotSlotsUI() {
     const slots = document.getElementById("pot-slots");
     slots.innerHTML = "";
     updatePrepStagePreview();
+    updateCompactPrepStatus();
 
     const shownSlots = Math.max(5, state.potSlots.length);
     for (let i = 0; i < shownSlots; i++) {
@@ -1308,11 +1315,24 @@ function updatePotSlotsUI() {
 
         const ing = state.potSlots[i] ? getItemMeta(state.potSlots[i]) : null;
         if (ing) {
-            slot.innerHTML = `<img src="${getIngredientImagePath(ing.id)}" onerror="this.outerHTML='<span>${ing.emoji}</span>'" class="ingredient-img-slot">`;
+            slot.innerHTML = `
+                <img src="${getIngredientImagePath(ing.id)}" onerror="this.outerHTML='<span>${ing.emoji}</span>'" class="ingredient-img-slot">
+                <span class="mobile-slot-name">${ing.name}</span>
+            `;
         }
 
         slots.appendChild(slot);
     }
+}
+
+function updateCompactPrepStatus() {
+    const status = document.getElementById("compact-prep-status");
+    if (!status) return;
+
+    const ingredientNames = state.potSlots.map(id => getItemMeta(id).name);
+    status.innerText = ingredientNames.length
+        ? `食材：${ingredientNames.join("、")}`
+        : "拖曳食材到這裡";
 }
 
 function updatePrepStagePreview() {
@@ -1465,6 +1485,7 @@ function updateStoveImages() {
         const eq = state.equipment.stoveRight;
         right.src = eq.hasItem ? getStoveImage(eq.kind, eq.running) : getStoveImage(null, eq.fireOn);
     }
+    updateCompactEquipmentControls();
 }
 
 function updateOvenImage() {
@@ -1478,11 +1499,39 @@ function updateOvenImage() {
     if (eq.hasItem && eq.running) setOvenStatus("烘烤中");
     else if (eq.hasItem) setOvenStatus("點擊烤箱開始");
     else setOvenStatus(eq.closed ? "烤箱已關閉" : "烤箱閒置中");
+    updateCompactEquipmentControls();
 }
 
 function setOvenStatus(text) {
     const status = document.getElementById("oven-status");
     if (status) status.innerText = text;
+}
+
+function updateCompactEquipmentControls() {
+    const setStoveText = (id, label, equipment) => {
+        const button = document.getElementById(id);
+        if (!button) return;
+        let status = equipment.running
+            ? "烹飪中"
+            : equipment.hasItem
+                ? "準備烹飪"
+                : equipment.fireOn ? "開" : "關";
+        button.innerHTML = `
+            <span class="compact-stove-label">${label}</span>
+            <span class="compact-stove-status">目前狀態：${status}</span>
+        `;
+    };
+
+    setStoveText("compact-stove-left", "左爐", state.equipment.stoveLeft);
+    setStoveText("compact-stove-right", "右爐", state.equipment.stoveRight);
+
+    const ovenButton = document.getElementById("compact-oven-button");
+    const oven = state.equipment.oven;
+    if (ovenButton) {
+        if (oven.running) ovenButton.innerText = "烤箱：烘烤中";
+        else if (oven.hasItem) ovenButton.innerText = "烤箱：開始烘烤";
+        else ovenButton.innerText = `烤箱：${oven.closed ? "開門" : "關門"}`;
+    }
 }
 
 function toggleStoveBurner(key) {
@@ -1942,7 +1991,45 @@ function triggerSmokePuff(x, y) {
 // 9. 隨機老鼠干擾事件
 // ==========================================================================
 
+function isMobileGameLayout() {
+    return window.matchMedia("(max-width: 820px), (max-width: 1024px) and (max-height: 500px) and (orientation: landscape)").matches;
+}
+
+function disableMouseForMobile() {
+    if (state.mouseInterval) {
+        clearInterval(state.mouseInterval);
+        state.mouseInterval = null;
+    }
+    if (state.mouseTimer) {
+        clearTimeout(state.mouseTimer);
+        state.mouseTimer = null;
+    }
+    if (state.mouseAnim) {
+        state.mouseAnim.pause();
+        state.mouseAnim = null;
+    }
+
+    state.mouseActive = false;
+    const mouse = document.querySelector(".mouse-entity");
+    if (mouse) mouse.remove();
+    document.getElementById("mouse-siren")?.classList.add("hide");
+    document.body.classList.remove("mouse-alert-active");
+}
+
+function syncMobileMouseAvailability() {
+    if (isMobileGameLayout()) {
+        disableMouseForMobile();
+    } else if (state.gameStarted && !state.mouseInterval) {
+        startMouseSpawnScheduler();
+    }
+}
+
 function startMouseSpawnScheduler() {
+    if (isMobileGameLayout()) {
+        disableMouseForMobile();
+        return;
+    }
+
     state.mouseInterval = setInterval(() => {
         if (state.isPaused || state.mouseActive || !state.gameStarted) return;
         
@@ -1953,6 +2040,11 @@ function startMouseSpawnScheduler() {
 }
 
 function spawnMouseAttack() {
+    if (isMobileGameLayout()) {
+        disableMouseForMobile();
+        return;
+    }
+
     state.mouseActive = true;
     state.mouseClicks = 0; // 初始化點擊次數為 0
     SFX.playAlert();
@@ -2265,7 +2357,7 @@ function startGame() {
     state.exp = 0;
     state.gold = 0;
     state.hearts = 3;
-    state.isPaused = false;
+    state.isPaused = state.orientationLocked;
     state.isFever = false;
     state.isEndless = false;
     state.gameStarted = true;
@@ -2362,11 +2454,33 @@ function pauseGame() {
 
 // 恢復所有遊戲時間
 function resumeGame() {
-    if (state.gameStarted) {
+    if (state.gameStarted && !state.orientationLocked) {
         state.isPaused = false;
         if (state.mouseAnim) {
             state.mouseAnim.play();
         }
+    }
+}
+
+function updateOrientationLock() {
+    const shouldLock = window.matchMedia("(orientation: portrait) and (max-width: 1024px)").matches;
+    const overlay = document.getElementById("orientation-lock");
+
+    if (shouldLock && !state.orientationLocked) {
+        state.wasPausedBeforeOrientation = state.isPaused;
+        state.orientationLocked = true;
+        pauseGame();
+    } else if (!shouldLock && state.orientationLocked) {
+        state.orientationLocked = false;
+        if (!state.wasPausedBeforeOrientation) {
+            resumeGame();
+        }
+        state.wasPausedBeforeOrientation = false;
+    }
+
+    document.body.classList.toggle("orientation-locked", shouldLock);
+    if (overlay) {
+        overlay.setAttribute("aria-hidden", String(!shouldLock));
     }
 }
 
@@ -2885,7 +2999,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const moveHudForViewport = () => {
         if (!topNav || !navMenu || !hud || !gameContainer || !guestZone) return;
-        if (window.innerWidth > 820) {
+        if (!isMobileGameLayout()) {
             topNav.insertBefore(hud, navMenu);
             hud.classList.add("nav-hud");
         } else {
@@ -2894,6 +3008,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
     moveHudForViewport();
+    updateOrientationLock();
+    syncMobileMouseAvailability();
 
     const closeResponsiveNav = () => {
         if (!topNav || !navToggleBtn) return;
@@ -2908,6 +3024,8 @@ document.addEventListener("DOMContentLoaded", () => {
             navToggleBtn.setAttribute("aria-expanded", String(isOpen));
             if (isOpen && state.gameStarted) {
                 pauseGame();
+            } else if (!isOpen && state.gameStarted) {
+                resumeGame();
             }
         });
     }
@@ -2920,10 +3038,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.addEventListener("resize", () => {
         moveHudForViewport();
-        if (window.innerWidth > 820) {
+        syncMobileMouseAvailability();
+        if (!isMobileGameLayout()) {
             closeResponsiveNav();
         }
     });
+    window.addEventListener("resize", updateOrientationLock);
+    window.addEventListener("orientationchange", updateOrientationLock);
 
     // -------------------------------------------------------------
     // 🌟 頂部 Navigation Bar 聯動綁定 🌟
@@ -3010,14 +3131,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 🌟 說明模態框內部按鈕 🌟
     // -------------------------------------------------------------
     
-    // 關閉說明，若已開賽則恢復遊戲
-    document.getElementById("btn-close-instructions").addEventListener("click", () => {
-        SFX.playClick();
-        closeInstructionsAction();
-    });
-
-    // 「了解！進入廚房」快捷按鈕
-    document.getElementById("btn-start-from-instructions").addEventListener("click", () => {
+    const enterKitchenFromInstructions = () => {
         SFX.playClick();
         document.getElementById("instructions-modal").classList.remove("active");
         if (!state.gameStarted) {
@@ -3026,7 +3140,10 @@ document.addEventListener("DOMContentLoaded", () => {
             resumeGame();
             updateNavActiveTab("nav-btn-start");
         }
-    });
+    };
+
+    document.getElementById("btn-close-instructions").addEventListener("click", enterKitchenFromInstructions);
+    document.getElementById("btn-start-from-instructions").addEventListener("click", enterKitchenFromInstructions);
 
     // -------------------------------------------------------------
     // 🌟 圖鑑模態框內部按鈕 🌟
@@ -3056,9 +3173,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const stoveLeft = document.getElementById("stove-left-img");
     const stoveRight = document.getElementById("stove-right-img");
     const oven = document.getElementById("oven-img");
+    const compactStoveLeft = document.getElementById("compact-stove-left");
+    const compactStoveRight = document.getElementById("compact-stove-right");
+    const compactOvenButton = document.getElementById("compact-oven-button");
     if (stoveLeft) stoveLeft.addEventListener("click", () => toggleStoveBurner("stoveLeft"));
     if (stoveRight) stoveRight.addEventListener("click", () => toggleStoveBurner("stoveRight"));
     if (oven) oven.addEventListener("click", toggleOven);
+    if (compactStoveLeft) compactStoveLeft.addEventListener("click", () => toggleStoveBurner("stoveLeft"));
+    if (compactStoveRight) compactStoveRight.addEventListener("click", () => toggleStoveBurner("stoveRight"));
+    if (compactOvenButton) compactOvenButton.addEventListener("click", toggleOven);
     updateStoveImages();
     updateOvenImage();
 });

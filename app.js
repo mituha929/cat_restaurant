@@ -3039,8 +3039,11 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("resize", () => {
         moveHudForViewport();
         syncMobileMouseAvailability();
-        if (!isMobileGameLayout()) {
+        if (window.innerWidth > 1700 && topNav?.classList.contains("nav-open")) {
             closeResponsiveNav();
+            if (state.gameStarted && !document.querySelector("#book-modal.active, #instructions-modal.active")) {
+                resumeGame();
+            }
         }
     });
     window.addEventListener("resize", updateOrientationLock);

@@ -1841,8 +1841,8 @@ body.michelin-theme #leaderboard-table tr:first-child td {
 }
 
 @keyframes float-bubble {
-    0% { transform: translate(-50%, -85%); }
-    100% { transform: translate(-50%, -93%); }
+    0% { transform: translate(-50%, 0); }
+    100% { transform: translate(-50%, -5px); }
 }
 
 @keyframes slidin-up {
@@ -2920,7 +2920,8 @@ body.michelin-theme .story-subtitle-box {
     }
 
     .speech-bubble {
-        top: -40px;
+        top: auto;
+        bottom: calc(100% + 8px);
         min-height: 44px;
         padding: 5px 10px 7px;
     }
@@ -5085,7 +5086,8 @@ body.michelin-theme .story-subtitle-box {
 /* Keep the compact header and customer row above later mobile overrides. */
 @media (max-width: 1024px) and (max-height: 500px) and (orientation: landscape) {
     body {
-        padding-top: 56px;
+        --compact-nav-space: clamp(50px, 12dvh, 62px);
+        padding-top: var(--compact-nav-space);
     }
 
     #top-nav {
@@ -5147,8 +5149,13 @@ body.michelin-theme .story-subtitle-box {
     }
 
     #game-container {
-        height: calc(100dvh - 56px);
-        gap: 8px;
+        width: 100%;
+        max-width: calc(100% - 12px);
+        height: calc(100dvh - var(--compact-nav-space));
+        min-height: 0;
+        padding: 0 4px 4px;
+        gap: clamp(5px, 1.4dvh, 8px);
+        overflow: hidden;
         transition: filter 0.2s ease, opacity 0.2s ease;
     }
 
@@ -5156,7 +5163,8 @@ body.michelin-theme .story-subtitle-box {
         display: grid;
         grid-template-columns: auto 1fr auto;
         align-items: center;
-        min-height: 34px;
+        flex: 0 0 clamp(30px, 8dvh, 34px);
+        min-height: 0;
         padding: 3px 8px;
         gap: 6px;
         border-radius: 10px;
@@ -5191,8 +5199,8 @@ body.michelin-theme .story-subtitle-box {
     #hud .btn-book { width: auto; padding: 4px 7px; white-space: nowrap; }
 
     #guest-zone {
-        flex: 0 0 54px;
-        height: 54px;
+        flex: 0 0 clamp(50px, 12dvh, 58px);
+        height: clamp(50px, 12dvh, 58px);
         margin: 0;
     }
 
@@ -5203,7 +5211,7 @@ body.michelin-theme .story-subtitle-box {
 
     #guests-container {
         height: 100%;
-        padding: 2px 4px 8px;
+        padding: 2px 4px;
         gap: 5px;
     }
 
@@ -5212,12 +5220,12 @@ body.michelin-theme .story-subtitle-box {
         width: min(58vw, 220px);
         min-width: min(58vw, 220px);
         max-width: min(58vw, 220px);
-        height: 42px;
+        height: 100%;
     }
 
     .cat-card {
-        min-height: 42px;
-        height: 42px;
+        min-height: 0;
+        height: 100%;
         grid-template-columns: minmax(56px, 0.8fr) minmax(72px, 1fr);
         grid-template-areas: "name order" "bar order";
         padding: 3px 5px;
@@ -5235,21 +5243,24 @@ body.michelin-theme .story-subtitle-box {
     }
 
     .cat-card .speech-bubble {
-        min-height: 32px;
-        height: 32px;
-        padding: 3px 4px;
+        min-height: 0;
+        height: 100%;
+        padding: 2px 4px;
         border-radius: 7px;
     }
 
     .cat-card .patience-bar { height: 4px; }
 
     #kitchen-zone.kitchen-workshop {
-        display: flex;
-        flex-direction: column;
-        --compact-station-row-height: clamp(44px, calc(8.63vw - 13.56px), 66px);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "pantry" "top" "bottom";
+        grid-template-rows: clamp(64px, 18dvh, 76px) repeat(2, minmax(0, 1fr));
+        flex: 1 1 auto;
         min-height: 0;
-        gap: 4px;
+        gap: clamp(3px, 0.8dvh, 5px);
         padding: 0 4px 4px;
+        overflow: hidden;
     }
 
     .counter-line {
@@ -5257,19 +5268,22 @@ body.michelin-theme .story-subtitle-box {
     }
 
     .pantry-board {
-        order: -1;
-        flex: 0 0 78px;
+        grid-area: pantry;
+        min-height: 0;
+    }
+
+    .ingredient-box {
+        height: clamp(48px, 14dvh, 56px);
+        min-height: 0;
     }
 
     .station-row-top {
-        order: 1;
-        flex: 0 0 var(--compact-station-row-height);
+        grid-area: top;
         min-height: 0;
     }
 
     .station-row-bottom {
-        order: 2;
-        flex: 0 0 var(--compact-station-row-height);
+        grid-area: bottom;
         min-height: 0;
     }
 
@@ -5520,5 +5534,340 @@ body.michelin-theme .story-subtitle-box {
         min-height: 44px;
         padding: 6px 10px;
         font-size: clamp(12px, calc(3vw - 4px), 16px);
+    }
+}
+
+/* Collapse desktop navigation before the fixed-width items overflow. */
+@media (min-width: 1025px) and (max-width: 1700px),
+       (min-width: 821px) and (max-width: 1024px) and (min-height: 501px) {
+    #top-nav {
+        gap: 8px;
+        overflow: visible;
+    }
+
+    #top-nav .nav-logo {
+        flex: 0 1 190px;
+        min-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: clamp(0.75rem, 1vw, 1rem);
+    }
+
+    #top-nav .nav-toggle {
+        display: inline-flex;
+        order: 10;
+        flex: 0 0 auto;
+        margin-left: auto;
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+
+    #top-nav #hud .hud-left {
+        margin-left: 0;
+    }
+
+    #top-nav #hud .hud-left,
+    #top-nav #hud .hud-center,
+    #top-nav #hud .hud-right {
+        gap: 6px;
+    }
+
+    #top-nav #hud .hud-right {
+        margin-left: 0;
+    }
+
+    #top-nav #hud .exp-bar-wrapper {
+        width: clamp(60px, 10vw, 140px);
+    }
+
+    #top-nav #hud .gold-container {
+        margin-left: 0;
+        padding: 4px 7px;
+    }
+
+    #top-nav #hud .btn-book {
+        padding: 6px 9px;
+        font-size: 0.7rem;
+    }
+
+    #top-nav .nav-links {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        width: 100%;
+        margin: 0;
+        padding: 10px 12px;
+        flex-direction: column;
+        gap: 6px;
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        background: rgba(255, 248, 243, 0.82);
+        box-shadow: 0 14px 30px rgba(65, 32, 20, 0.2);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+    }
+
+    #top-nav.nav-open .nav-links {
+        display: flex;
+    }
+
+    #top-nav .nav-links .nav-item {
+        width: 100%;
+        padding: 9px 12px;
+        text-align: center;
+    }
+
+    #top-nav.nav-open ~ #game-container {
+        filter: blur(6px);
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    #top-nav.nav-open #hud .hud-left,
+    #top-nav.nav-open #hud .hud-center,
+    #top-nav.nav-open #hud .hud-right {
+        filter: blur(6px);
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    #game-container {
+        transition: filter 0.2s ease, opacity 0.2s ease;
+    }
+}
+
+/* Keep the full kitchen visible on short landscape tablets and smart displays. */
+@media (min-width: 981px) and (max-width: 1280px) and (min-height: 501px) and (max-height: 820px) and (orientation: landscape) {
+    body {
+        --tablet-nav-space: clamp(54px, 7dvh, 62px);
+        height: 100dvh;
+        padding-top: var(--tablet-nav-space);
+        overflow: hidden;
+    }
+
+    #game-container {
+        height: calc(100dvh - var(--tablet-nav-space));
+        min-height: 0;
+        padding-bottom: 6px;
+        gap: 6px;
+        overflow: hidden;
+    }
+
+    #guest-zone {
+        flex: 0 0 clamp(132px, 19dvh, 154px);
+        height: clamp(132px, 19dvh, 154px);
+        margin: clamp(52px, 7.5dvh, 62px) 0 4px;
+    }
+
+    .cat-card {
+        padding: 6px 8px;
+        gap: 4px;
+    }
+
+    .cat-walk-avatar {
+        width: 50px;
+        height: 50px;
+    }
+
+    .speech-bubble {
+        padding: 3px 8px 4px;
+        gap: 3px;
+    }
+
+    .speech-bubble .order-img {
+        width: 30px;
+        height: 30px;
+    }
+
+    #kitchen-zone.kitchen-workshop {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "top" "bottom" "pantry";
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1.08fr) clamp(156px, 23dvh, 174px);
+        flex: 1 1 auto;
+        min-height: 0;
+        gap: 6px;
+        padding: clamp(36px, 5dvh, 42px) 10px 6px;
+        overflow: hidden;
+    }
+
+    .counter-line {
+        height: 26px;
+    }
+
+    #kitchen-zone.kitchen-workshop .tool-station:not(.prep-station) {
+        background: linear-gradient(180deg, #fff6eb, #ffe4d2);
+        border-color: rgba(132, 67, 35, 0.32);
+        box-shadow: inset 0 -8px 0 rgba(173, 102, 48, 0.12), 0 5px 14px rgba(101, 55, 24, 0.08);
+    }
+
+    .station-row-top {
+        grid-area: top;
+    }
+
+    .station-row-bottom {
+        grid-area: bottom;
+    }
+
+    .station-row-top,
+    .station-row-bottom {
+        grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.15fr) minmax(0, 0.8fr);
+        min-height: 0;
+        grid-auto-rows: minmax(0, 1fr);
+    }
+
+    .station-row-top .tool-station,
+    .station-row-bottom .tool-station {
+        height: 100%;
+        min-height: 0;
+    }
+
+    .tool-station .tool-img {
+        max-height: calc(100% - 22px);
+    }
+
+    #prep-stage-preview {
+        height: calc(100% - 24px);
+    }
+
+    .prep-stage-img {
+        max-height: 100%;
+    }
+
+    .sushi-mold-img,
+    .onigiri-mold-img {
+        width: min(55%, 125px);
+    }
+
+    .serving-table-img {
+        width: min(62%, 300px);
+    }
+
+    .stove-station {
+        gap: 8px;
+        padding: 22px 8px 8px;
+    }
+
+    .stove-left-img,
+    .stove-right-img {
+        width: min(38%, 118px);
+        flex-basis: 118px;
+    }
+
+    .prep-table-img {
+        width: min(65%, 240px);
+    }
+
+    .prep-stage-img {
+        max-height: 95px;
+    }
+
+    .oven-img {
+        width: min(76%, 190px);
+    }
+
+    .pantry-board {
+        grid-area: pantry;
+        grid-template-columns: 90px minmax(0, 1fr);
+        gap: 8px;
+        min-height: 0;
+        padding: 4px 8px;
+    }
+
+    #ingredients-shelf {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: repeat(2, minmax(0, 1fr));
+        height: 100%;
+        min-height: 0;
+        gap: 4px 8px;
+    }
+
+    .ingredient-box {
+        height: 100%;
+        min-height: 0;
+        padding: 2px 5px;
+        gap: 0;
+    }
+
+    .ingredient-emoji {
+        height: clamp(18px, 2.8dvh, 23px);
+        flex-basis: clamp(18px, 2.8dvh, 23px);
+    }
+
+    .ingredient-img {
+        max-width: 32px;
+        max-height: clamp(18px, 2.8dvh, 23px);
+    }
+
+    .ingredient-box .ingredient-name,
+    .ingredient-box .stock-meter,
+    .ingredient-box .stock-count,
+    .ingredient-box .restock-btn {
+        margin-top: 0;
+    }
+
+    .ingredient-box .stock-meter {
+        height: 4px;
+        min-height: 4px;
+        flex-basis: 4px;
+    }
+
+    .ingredient-box .restock-btn {
+        padding: 1px 5px;
+        font-size: 0.55rem;
+        line-height: 1;
+    }
+}
+
+@media (min-width: 981px) and (max-width: 1100px) and (min-height: 501px) and (max-height: 820px) and (orientation: landscape) {
+    .sushi-mold-img,
+    .onigiri-mold-img {
+        width: min(52%, 110px);
+    }
+
+    .stove-left-img,
+    .stove-right-img {
+        width: min(36%, 105px);
+        flex-basis: 105px;
+    }
+
+    .oven-img {
+        width: min(74%, 170px);
+    }
+
+    .prep-table-img {
+        width: min(62%, 210px);
+    }
+}
+
+@media (min-width: 981px) and (max-width: 1280px) and (min-height: 501px) and (max-height: 600px) and (orientation: landscape) {
+    #kitchen-zone.kitchen-workshop {
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1.08fr) 84px;
+    }
+
+    #ingredients-shelf {
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        grid-template-rows: minmax(0, 1fr);
+        gap: 4px;
+    }
+}
+
+/* Match both station rows and their finish on larger landscape tablets. */
+@media (min-width: 1281px) and (max-width: 1440px) and (min-height: 821px) and (max-height: 1100px) and (orientation: landscape) {
+    #kitchen-zone.kitchen-workshop {
+        padding-top: 50px;
+    }
+
+    .station-row-top,
+    .station-row-bottom {
+        grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.15fr) minmax(0, 0.8fr);
+    }
+
+    #kitchen-zone.kitchen-workshop .tool-station:not(.prep-station) {
+        background: linear-gradient(180deg, #fff6eb, #ffe4d2);
+        border-color: rgba(132, 67, 35, 0.32);
+        box-shadow: inset 0 -8px 0 rgba(173, 102, 48, 0.12), 0 5px 14px rgba(101, 55, 24, 0.08);
     }
 }
